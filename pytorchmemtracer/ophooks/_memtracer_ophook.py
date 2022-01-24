@@ -80,8 +80,7 @@ class MemTracerOpHook(BaseOpHook):
 
     def pre_fwd_exec(self, module: torch.nn.Module, *args):
         if module.training:
-            if self.async_mem_monitor.is_measuring():
-                self.async_mem_monitor.finish()
+            self.async_mem_monitor.finish()
             self.async_mem_monitor.start()
             # print(f'FWD PRE {module.__class__.__name__}')
 
@@ -93,21 +92,21 @@ class MemTracerOpHook(BaseOpHook):
     def pre_bwd_exec(self, module: torch.nn.Module, input, output):
         assert isinstance(module, torch.nn.Module)
         if module.training:
-            if self.async_mem_monitor.is_measuring():
-                self.async_mem_monitor.finish()
+            self.async_mem_monitor.finish()
             self.async_mem_monitor.start()
             # print(f'BWD PRE {module.__class__.__name__}')
 
     def post_bwd_exec(self, module: torch.nn.Module, input):
         assert isinstance(module, torch.nn.Module)
         if module.training:
-            if self.async_mem_monitor.is_measuring():
-                self.async_mem_monitor.finish()
-            # print(f'BWD POST {module.__class__.__name__}')
-        
-    def post_iter(self):
-        if self.async_mem_monitor.is_measuring():
             self.async_mem_monitor.finish()
+            # print(f'BWD POST {module.__class__.__name__}')
+    
+    def pre_iter(self):
+        pass
+
+    def post_iter(self):
+        self.async_mem_monitor.finish()
         # print(f'post_iter')
 
     def save_results(self, filename):
