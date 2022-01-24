@@ -64,11 +64,10 @@ model = memtracer_wrapper(model)
 for i, batch in enumerate(train_loader):
     optim.zero_grad()
     input_ids, labels = batch
-
-    # change the backward API
-    # loss = model(input_ids, labels)
+    loss = model(input_ids, labels)
     model.backward(loss)
-    loss.backward()
+    # change the backward API
+    # loss.backward()
     optim.zero_grad()
     optim.step()
     print(i, loss.item())
