@@ -119,18 +119,14 @@ class MemTracerOpHook(BaseOpHook):
         self.async_mem_monitor = AsyncMemoryMonitor()
 
     def pre_fwd_exec(self, module: torch.nn.Module, *args):
-        assert(isinstance(module, torch.nn.Module), f"{type(module)}")
         if module.training:
-            # print(f"FWD pre {module.__class__.__name__}")
             if self.async_mem_monitor.is_measuring():
                 self.async_mem_monitor.finish()
             self.async_mem_monitor.start()
 
     def post_fwd_exec(self, module: torch.nn.Module, *args):
-        assert isinstance(module, torch.nn.Module)
         if module.training:
-            max_mem_used = self.async_mem_monitor.finish()
-            # print(f"FWD post {module.__class__.__name__} {max_mem_used}")
+            self.async_mem_monitor.finish()
 
     def pre_bwd_exec(self, module: torch.nn.Module, input, output):
         assert isinstance(module, torch.nn.Module)
@@ -142,12 +138,12 @@ class MemTracerOpHook(BaseOpHook):
     def post_bwd_exec(self, module: torch.nn.Module, input):
         assert isinstance(module, torch.nn.Module)
         if module.training:
-            max_mem_used = self.async_mem_monitor.finish()
-            # print(f"BWD post {module.__class__.__name__} {max_mem_used}")
+            if self.async_mem_monitor.is_measuring():
+                self.async_mem_monitor.finish()
     
     def post_iter(self):
-        max_mem_used = self.async_mem_monitor.finish()
-        # print(f"BWD post an iteration {max_mem_used}")
+        if self.async_mem_monitor.is_measuring():
+            self.async_mem_monitor.finish()
     
     def save_results(self, filename):
         self.async_mem_monitor.save(filename)
@@ -155,8 +151,7 @@ class MemTracerOpHook(BaseOpHook):
     def show_mem_stats(self):
         start_timestamp = min(self.async_mem_monitor.time_stamps)
         self.async_mem_monitor.time_stamps = [elem - start_timestamp for elem in self.async_mem_monitor.time_stamps]
-
-        # min_mem_used = min(self.async_mem_monitor.mem_stats)
-        # self.async_mem_monitor.mem_stats = [elem - min_mem_used for elem in self.async_mem_monitor.mem_stats]
+        min_mem_used = min(self.async_mem_monitor.mem_stats)
+        self.async_mem_monitor.mem_stats = [elem - min_mem_used for elem in self.async_mem_monitor.mem_stats]
         print(self.async_mem_monitor.time_stamps)
         print(self.async_mem_monitor.mem_stats)
