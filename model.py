@@ -9,14 +9,15 @@ class Encoder(torch.nn.Module):
     def __init__(self, hidden_dim, is_ckp=False):
         super(Encoder, self).__init__()
         self.linear1 = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, hidden_dim),
-            torch.nn.Linear(hidden_dim, hidden_dim),
+            torch.nn.Linear(hidden_dim, 4 * hidden_dim),
+            torch.nn.Linear(4 * hidden_dim, hidden_dim),
             torch.nn.Linear(hidden_dim, hidden_dim),
         )
 
-        self.linear3 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.linear4 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.linear5 = torch.nn.Linear(hidden_dim, hidden_dim)
+        self.linear3 = torch.nn.Sequential(torch.nn.Linear(hidden_dim, hidden_dim),
+              torch.nn.Linear(hidden_dim, hidden_dim),
+              torch.nn.Linear(hidden_dim, hidden_dim)
+        )
         self.is_ckp = is_ckp
 
     def forward(self, x):
@@ -25,9 +26,7 @@ class Encoder(torch.nn.Module):
             h3 = checkpoint(self.linear3, h2)
         else:
             h3 = self.linear3(h2)
-        h4 = self.linear4(h3)
-        h5 = self.linear5(h4)
-        return h5
+        return h3
 
 
 def get_data_loader(

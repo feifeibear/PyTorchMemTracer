@@ -6,13 +6,13 @@ from ophooks import register_ophooks_recursively, MemTracerOpHook
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 BATCH_SIZE = 8
-HIDDEN_DIM = 4
+HIDDEN_DIM = 128
 SEQ_LEN = 128
 
 
 def model_func():
     return SimpleModel(
-        hidden_dim=HIDDEN_DIM, seq_len=SEQ_LEN, is_ckp=True, is_share_param=True
+        hidden_dim=HIDDEN_DIM, seq_len=SEQ_LEN, is_ckp=False, is_share_param=True
     )
 
 
@@ -59,18 +59,18 @@ model.cuda()
 
 train_loader = get_bert_data_loader(BATCH_SIZE, 10000, 128, device, False)
 
-for epoch in range(3):
-    for i, batch in enumerate(train_loader):
-        optim.zero_grad()
-        input_ids, labels = batch
-        loss = model(input_ids, labels)
-        loss.backward()
-        for ophook in ophook_list:
-            ophook.post_iter()
-        optim.zero_grad()
-        optim.step()
-        print(i, loss.item())
-        if i == 10:
-            break
+for i, batch in enumerate(train_loader):
+    optim.zero_grad()
+    input_ids, labels = batch
+    loss = model(input_ids, labels)
+    loss.backward()
+    for ophook in ophook_list:
+        ophook.post_iter()
+    optim.zero_grad()
+    optim.step()
+    print(i, loss.item())
+    if i == 10:
+        break
 
-ophook_list[0].show_mem_stats()
+ophook_list[0].save_results("memstats.pkl")
+# ophook_list[0].show_mem_stats()

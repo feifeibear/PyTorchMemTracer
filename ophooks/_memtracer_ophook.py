@@ -3,6 +3,7 @@ from . import BaseOpHook
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep, time
 import psutil
+import pickle
 
 def get_memory_info():
     try:
@@ -99,6 +100,16 @@ class AsyncMemoryMonitor:
             sleep(self.interval)
         return max_usage
 
+    def state_dict(self):
+        return {
+            "time_stamps" : self.time_stamps,
+            "mem_stats" : self.mem_stats,
+        }
+
+    def save(self, filename):
+        with open(filename, "wb") as f:
+            pickle.dump(self.state_dict(), f)
+    
 class MemTracerOpHook(BaseOpHook):
     r"""
     A simple OpHook. Print the module name before its execution.
@@ -138,6 +149,9 @@ class MemTracerOpHook(BaseOpHook):
         max_mem_used = self.async_mem_monitor.finish()
         # print(f"BWD post an iteration {max_mem_used}")
     
+    def save_results(self, filename):
+        self.async_mem_monitor.save(filename)
+
     def show_mem_stats(self):
         start_timestamp = min(self.async_mem_monitor.time_stamps)
         self.async_mem_monitor.time_stamps = [elem - start_timestamp for elem in self.async_mem_monitor.time_stamps]
