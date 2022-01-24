@@ -5,53 +5,16 @@ from time import sleep, time
 import psutil
 import pickle
 
-def get_memory_info():
-    try:
-        # psutil reads the memory info from /proc/memory_info,
-        # which results in returning the host memory instead of
-        # that of container.
-        # Here we try to read the container memory with method in:
-        # https://stackoverflow.com/a/46213331/5163915
-        mems = {}
-        with open("/sys/fs/cgroup/memory/memory.meminfo", "rb") as f:
-            for line in f:
-                fields = line.split()
-                mems[fields[0]] = int(fields[1]) * 1024
-        total = mems[b"MemTotal:"]
-        free = mems[b"MemFree:"]
-        cached = mems[b"Cached:"]
-        buffers = mems[b"Buffers:"]
-        used = total - free - cached - buffers
-        if used < 0:
-            used = total - free
-        mem_info = ps_mem_info(
-            total=total, free=free, cached=cached, buffers=buffers, used=used
-        )
-    except FileNotFoundError:
-        mems = psutil.virtual_memory()
-        mem_info = ps_mem_info(
-            total=mems.total,
-            free=mems.free,
-            cached=mems.cached,
-            buffers=mems.buffers,
-            used=mems.used,
-        )
-    return mem_info
-
-def get_sys_memory_used(device):
+def get_cuda_memory_used(device):
     """
     Get the free memory info of device.
     Notice that for CPU, this function will return 1/N of the total free memory,
     where N is the world size.
     """
-    if device.type == "cuda":
-        ret = torch.cuda.memory_allocated()
-        # get the peak memory to report correct data, so reset the counter for the next call
-        if hasattr(torch.cuda, "reset_peak_memory_stats"):  # pytorch 1.4+
-            torch.cuda.reset_peak_memory_stats()
-    elif device.type == "cpu":
-        mem_info = get_memory_info()
-        ret = mem_info.used / get_local_world_size()
+    ret = torch.cuda.memory_allocated()
+    # get the peak memory to report correct data, so reset the counter for the next call
+    if hasattr(torch.cuda, "reset_peak_memory_stats"):  # pytorch 1.4+
+        torch.cuda.reset_peak_memory_stats()
     return ret
 
 
@@ -95,7 +58,7 @@ class AsyncMemoryMonitor:
         while self.keep_measuring:
             max_usage = max(
                 max_usage,
-                get_sys_memory_used(dev),
+                get_cuda_memory_used(dev),
             )
             sleep(self.interval)
         return max_usage
