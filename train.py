@@ -74,5 +74,4 @@ for i, batch in enumerate(train_loader):
     if i == 10:
         break
 
-# ophook_list[0].save_results("memstats.pkl")
-# ophook_list[0].show_mem_stats()
+model.save_results("memstats.pkl")

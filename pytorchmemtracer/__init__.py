@@ -18,6 +18,9 @@ class Engine():
         for ophook in self._ophook_list:
             ophook.post_iter()
     
+    def save_results(self, filename):
+        for ophook in self._ophook_list:
+            ophook.save_results(filename)
 
 def memtracer_wrapper(model):
     ophook_list = [MemTracerOpHook()]
