@@ -3,7 +3,6 @@ from torch.utils.checkpoint import checkpoint
 from torch.utils.data import SequentialSampler
 from transformers import BertConfig
 from transformers.models.bert.modeling_bert import BertEmbeddings
-from ophooks import register_ophooks_recursively, MemTracerOpHook
 
 class Encoder(torch.nn.Module):
     def __init__(self, hidden_dim, is_ckp=False):

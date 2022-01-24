@@ -2,7 +2,9 @@ import logging
 import torch
 
 from model import SimpleModel, get_bert_data_loader
-from ophooks import register_ophooks_recursively, MemTracerOpHook
+# from pytorchmemtracer.ophooks import register_ophooks_recursively, MemTracerOpHook
+from pytorchmemtracer import memtracer_wrapper
+
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 BATCH_SIZE = 8
@@ -14,7 +16,6 @@ def model_func():
     return SimpleModel(
         hidden_dim=HIDDEN_DIM, seq_len=SEQ_LEN, is_ckp=False, is_share_param=True
     )
-
 
 LR = 5e-5
 BETAS = (0.9, 0.999)
@@ -50,8 +51,6 @@ config = {
 torch.manual_seed(0)
 model = model_func()
 
-ophook_list = [MemTracerOpHook()]
-register_ophooks_recursively(model, ophook_list)
 optim = torch.optim.Adam(
     model.parameters(), lr=LR, betas=BETAS, eps=EPS, weight_decay=WEIGHT_DECAY
 )
@@ -59,18 +58,22 @@ model.cuda()
 
 train_loader = get_bert_data_loader(BATCH_SIZE, 10000, 128, device, False)
 
+# add this line for mem tracing
+model = memtracer_wrapper(model)
+
 for i, batch in enumerate(train_loader):
     optim.zero_grad()
     input_ids, labels = batch
-    loss = model(input_ids, labels)
+
+    # change the backward API
+    # loss = model(input_ids, labels)
+    model.backward(loss)
     loss.backward()
-    for ophook in ophook_list:
-        ophook.post_iter()
     optim.zero_grad()
     optim.step()
     print(i, loss.item())
     if i == 10:
         break
 
-ophook_list[0].save_results("memstats.pkl")
+# ophook_list[0].save_results("memstats.pkl")
 # ophook_list[0].show_mem_stats()
