@@ -50,7 +50,8 @@ config = {
 torch.manual_seed(0)
 model = model_func()
 
-register_ophooks_recursively(model, [MemTracerOpHook()])
+ophook_list = [MemTracerOpHook()]
+register_ophooks_recursively(model, ophook_list)
 optim = torch.optim.Adam(
     model.parameters(), lr=LR, betas=BETAS, eps=EPS, weight_decay=WEIGHT_DECAY
 )
@@ -64,10 +65,12 @@ for epoch in range(3):
         input_ids, labels = batch
         loss = model(input_ids, labels)
         loss.backward()
+        for ophook in ophook_list:
+            ophook.post_iter()
         optim.zero_grad()
         optim.step()
         print(i, loss.item())
         if i == 10:
-            exit()
+            break
 
-model.eval()
+ophook_list[0].show_mem_stats()

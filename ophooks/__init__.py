@@ -61,8 +61,10 @@ def register_ophooks_recursively(module: torch.nn.Module,
                                  name: str = ""):
     r"""Recursilvely register pre/post hooks for all submodules in the module in FWD and BWD."""
     assert isinstance(module, torch.nn.Module)
+    has_children = False
     for child_name, child in module.named_children():
         register_ophooks_recursively(child, ophook_list, name + child_name)
+        has_children = True
 
     # Early return on modules with no parameters or buffers that
     # are not in their children.
@@ -70,6 +72,14 @@ def register_ophooks_recursively(module: torch.nn.Module,
             and len(list(module.named_buffers(recurse=False))) == 0):
         return
 
+    # return if the module has not childern.
+    if has_children:
+        return
+    
+    if ophook_list is not None:
+        for hook in ophook_list:
+            assert(isinstance(hook, BaseOpHook))
+    
     def _pre_forward_module_hook(submodule, *args):
         for hook in ophook_list:
             assert isinstance(submodule, torch.nn.Module)
@@ -80,7 +90,6 @@ def register_ophooks_recursively(module: torch.nn.Module,
             assert isinstance(submodule, torch.nn.Module)
             hook.post_fwd_exec(submodule, *args)
 
-    # The hook can modify the output
     def _pre_backward_module_hook(submodule, inputs, output):
         def _run_before_backward_function(submodule):
             for hook in ophook_list:
