@@ -74,9 +74,6 @@ class AsyncMemoryMonitor:
             pickle.dump(self.state_dict(), f)
     
 class MemTracerOpHook(BaseOpHook):
-    r"""
-    A simple OpHook. Print the module name before its execution.
-    """
     def __init__(self):
         super().__init__()
         self.async_mem_monitor = AsyncMemoryMonitor()
